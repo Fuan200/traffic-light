@@ -27,7 +27,6 @@ import com.leekleak.trafficlight.database.DayUsage
 import com.leekleak.trafficlight.database.HourlyUsageRepo
 import com.leekleak.trafficlight.database.TrafficSnapshot
 import com.leekleak.trafficlight.model.PreferenceRepo
-import com.leekleak.trafficlight.util.DataSize
 import com.leekleak.trafficlight.util.SizeFormatter
 import com.leekleak.trafficlight.util.clipAndPad
 import kotlinx.coroutines.CoroutineScope
@@ -37,6 +36,8 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -45,7 +46,6 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
-import kotlin.math.max
 
 class UsageService : Service(), KoinComponent {
     private val serviceScope = CoroutineScope(Dispatchers.IO)
@@ -56,10 +56,9 @@ class UsageService : Service(), KoinComponent {
     private val notificationManager: NotificationManager by lazy { getSystemService(NOTIFICATION_SERVICE) as NotificationManager }
     private var notification: Notification? = null
     private val notificationBuilder by lazy {
-        NotificationCompat.Builder(this, "N")
+        NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle("Traffic Light")
-            .setChannelId(NOTIFICATION_CHANNEL_ID)
             .setOngoing(true)
             .setSilent(true)
             .setWhen(Long.MAX_VALUE) // Keep above other notifications
@@ -82,13 +81,10 @@ class UsageService : Service(), KoinComponent {
         }
     }
 
-    var forceUpdate = false
     var bigIcon = false
     var aodMode = false
 
     private val formatter by lazy { SizeFormatter() }
-    var minSizeWifi: Long = DataSize(todayUsage.totalWifi.toFloat()).unit.getSize(2)
-    var minSizeMobile: Long = DataSize(todayUsage.totalCellular.toFloat()).unit.getSize(2)
 
     override fun onBind(intent: Intent): IBinder? {
         return null
@@ -102,20 +98,15 @@ class UsageService : Service(), KoinComponent {
             addAction(Intent.ACTION_SCREEN_OFF)
         })
         serviceScope.launch {
-            preferenceRepo.modeAOD.collect {
-                aodMode = it
-            }
-        }
-        serviceScope.launch {
-            preferenceRepo.bigIcon.collect {
-                forceUpdate = true
-                bigIcon = it
-            }
-        }
-        serviceScope.launch {
-            preferenceRepo.speedBits.collect {
-                formatter.asBits = it
-            }
+            combine(
+                preferenceRepo.modeAOD,
+                preferenceRepo.bigIcon,
+                preferenceRepo.speedBits,
+            ) { aod, icon, bits ->
+                aodMode = aod
+                bigIcon = icon
+                formatter.asBits = bits
+            }.collect()
         }
     }
 
@@ -179,12 +170,9 @@ class UsageService : Service(), KoinComponent {
             trafficSnapshot.updateSnapshot()
             trafficSnapshot.setCurrentAsLast()
 
-            var dataUsedWifi = 0L
-            var dataUsedMobile = 0L
-            var lastSpeed = 0
+            var updateCounter = 0
             while (true) {
                 trafficSnapshot.updateSnapshot()
-
 
                 /**
                  * If network speed is changing rapidly, we use this while loop to self-calibrate
@@ -194,29 +182,21 @@ class UsageService : Service(), KoinComponent {
                  * it's quite likely that the next tick will also be zero, so we ignore that and
                  * simply sleep for 1 second
                  */
-                if (lastSpeed != 0) {
-                    val tick = System.nanoTime()
-                    while (trafficSnapshot.isCurrentSameAsLast() && System.nanoTime() < tick + 250_000_000) {
-                        delay(100)
-                        trafficSnapshot.updateSnapshot()
-                    }
+                if (trafficSnapshot.isCurrentSameAsLast()) {
+                    delay(100)
+                    trafficSnapshot.updateSnapshot()
                 }
 
-                dataUsedWifi += max(trafficSnapshot.wifiSpeed, 0)
-                dataUsedMobile += max(trafficSnapshot.mobileSpeed, 0)
-
-                if (dataUsedWifi > minSizeWifi || dataUsedMobile > minSizeMobile) {
+                if (updateCounter == 10) {
                     updateDatabase()
-                    if (dataUsedWifi > minSizeWifi) dataUsedWifi = 0
-                    if (dataUsedMobile > minSizeMobile) dataUsedMobile = 0
+                } else {
+                    updateCounter++
                 }
-
-                lastSpeed = trafficSnapshot.totalSpeed.toInt()
 
                 updateNotification(trafficSnapshot)
                 trafficSnapshot.setCurrentAsLast()
 
-                delay(if (lastSpeed != 0) 900 else 1000)
+                delay(900)
             }
         }
     }
@@ -238,17 +218,10 @@ class UsageService : Service(), KoinComponent {
                 }
             ).also { it.categorizeUsage() }
         }
-        minSizeWifi = DataSize(todayUsage.totalWifi.toFloat()).unit.getSize(2)
-        minSizeMobile = DataSize(todayUsage.totalCellular.toFloat()).unit.getSize(2)
     }
 
     var lastSnapshot: TrafficSnapshot = TrafficSnapshot(-1)
     private fun updateNotification(trafficSnapshot: TrafficSnapshot) {
-        val skip = formatter.format(lastSnapshot.totalSpeed, 2, true) ==
-                   formatter.format(trafficSnapshot.totalSpeed, 2, true)
-        if (skip && !forceUpdate) return
-        forceUpdate = false
-
         lastSnapshot = trafficSnapshot.copy()
 
         val title = getString(R.string.speed, formatter.format(trafficSnapshot.totalSpeed, 2, true))
@@ -273,19 +246,25 @@ class UsageService : Service(), KoinComponent {
             textAlign = Paint.Align.CENTER
         }
     }
-    private var bitmap: Bitmap? = null
-    private var lastBitmapData: String = ""
+
+    private var cachedIcons: MutableMap<String, IconCompat> = mutableMapOf()
+    var bitmap: Bitmap? = null
     fun createIcon(snapshot: TrafficSnapshot): IconCompat {
         val density = Density(this@UsageService)
         val multiplier = 24 * density.density / 96f * if (bigIcon) 2f else 1f
         val height = (96 * multiplier).toInt()
 
         val data = formatter.partFormat(snapshot.totalSpeed, true)
-        if (lastBitmapData == data.toString() && !forceUpdate) {
-            Log.e("leekleak","Skipped updating")
-            return IconCompat.createWithBitmap(bitmap!!)
-        } else {
-            lastBitmapData = data.toString()
+        val bytesPerSecond: Boolean = data[2].lowercase() == "b/s"
+        val speed = if (!bytesPerSecond || snapshot.totalSpeed == 0L) {
+            data[0] + if (data[0].length == 1 && data[1].isNotEmpty()) "." + data[1] else ""
+        } else "<1"
+        val unit = if (!bytesPerSecond) data[2] else "K${data[2]}"
+
+        val iconTag = "$speed$unit$height"
+
+        if (cachedIcons.containsKey(iconTag)) {
+            return cachedIcons.getValue(iconTag)
         }
 
         if (bitmap == null || bitmap!!.height != height) {
@@ -295,12 +274,6 @@ class UsageService : Service(), KoinComponent {
         }
 
         val canvas = NativeCanvas(bitmap!!)
-
-        val bytesPerSecond: Boolean = data[2].lowercase() == "b/s"
-        val speed = if (!bytesPerSecond || snapshot.totalSpeed == 0L) {
-            data[0] + if (data[0].length == 1 && data[1].isNotEmpty()) "." + data[1] else ""
-        } else "<1"
-        val unit = if (!bytesPerSecond) data[2] else "K${data[2]}"
 
         paint.apply {
             textSize = 72f * multiplier
@@ -314,7 +287,8 @@ class UsageService : Service(), KoinComponent {
         }
         canvas.drawText(unit, 48f * multiplier, 96f * multiplier, paint)
 
-        return IconCompat.createWithBitmap(bitmap!!)
+        cachedIcons[iconTag] = IconCompat.createWithBitmap(bitmap!!.copy(Bitmap.Config.ARGB_8888, false))
+        return cachedIcons[iconTag]!!
     }
 
     companion object {
