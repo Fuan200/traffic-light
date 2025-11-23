@@ -268,7 +268,7 @@ class UsageService : Service(), KoinComponent {
         }
 
         if (bitmap == null || bitmap!!.height != height) {
-            bitmap = createBitmap(height, height)
+            bitmap = createBitmap(height, height, Bitmap.Config.ALPHA_8)
         } else {
             bitmap?.eraseColor(Color.TRANSPARENT)
         }
@@ -287,7 +287,7 @@ class UsageService : Service(), KoinComponent {
         }
         canvas.drawText(unit, 48f * multiplier, 96f * multiplier, paint)
 
-        cachedIcons[iconTag] = IconCompat.createWithBitmap(bitmap!!.copy(Bitmap.Config.ARGB_8888, false))
+        cachedIcons[iconTag] = IconCompat.createWithBitmap(bitmap!!.copy(Bitmap.Config.ALPHA_8, false))
         return cachedIcons[iconTag]!!
     }
 
