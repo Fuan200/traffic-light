@@ -25,6 +25,9 @@ class SettingsVM : ViewModel(), KoinComponent {
     fun setBigIcon(enabled: Boolean) = preferenceRepo.setBigIcon(enabled)
     val speedBits = preferenceRepo.speedBits.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), false)
     fun setSpeedBits(enabled: Boolean) = preferenceRepo.setSpeedBits(enabled)
+
+    val forceFallback = preferenceRepo.forceFallback.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), false)
+    fun setForceFallback(enabled: Boolean) = preferenceRepo.setForceFallback(enabled)
     val dbSize = hourlyUsageRepo.getDBSize().stateIn(viewModelScope, SharingStarted.WhileSubscribed(), 0)
     fun clearDB() {
         viewModelScope.launch(Dispatchers.IO) {

@@ -61,6 +61,16 @@ fun Settings(
                 onValueChanged = { viewModel.setSpeedBits(it) }
             )
         }
+        item {
+            val forceFallback by viewModel.forceFallback.collectAsState()
+            SwitchPreference(
+                title = stringResource(R.string.force_fallback),
+                summary = stringResource(R.string.force_fallback_description),
+                icon = painterResource(R.drawable.speed),
+                value = forceFallback,
+                onValueChanged = { viewModel.setForceFallback(it) }
+            )
+        }
 
         categoryTitleSmall(R.string.history)
         item {
@@ -68,7 +78,7 @@ fun Settings(
             Preference(
                 title = stringResource(R.string.clear_history),
                 summary = stringResource(R.string.clear_history_description),
-                icon = painterResource(R.drawable.clear_history),
+                icon = painterResource(R.drawable.fallback),
                 onClick = { viewModel.clearDB() },
                 controls = {
                     Text(pluralStringResource(R.plurals.days, dbSize / 24, dbSize / 24))

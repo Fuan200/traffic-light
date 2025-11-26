@@ -1,7 +1,18 @@
 package com.leekleak.trafficlight.database
 
 import android.net.TrafficStats
+import android.util.Log
+import com.leekleak.trafficlight.model.PreferenceRepo
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
+import java.io.File
+import java.io.FileOutputStream
 import java.time.LocalDate
+import kotlin.getValue
 
 data class DayUsage(
     val date: LocalDate = LocalDate.now(),
@@ -51,7 +62,17 @@ data class TrafficSnapshot (
     var currentUp: Long = 0,
     var currentMobile: Long = 0,
     var currentWifi: Long = 0,
-) {
+) : KoinComponent {
+    private val preferenceRepo: PreferenceRepo by inject()
+
+    init {
+        CoroutineScope(Dispatchers.IO).launch {
+            preferenceRepo.forceFallback.collect {
+                useFallback = if (it) true
+                else TrafficStats.getTotalTxBytes() == TrafficStats.UNSUPPORTED.toLong()
+            }
+        }
+    }
     val totalSpeed: Long
         get() = currentUp + currentDown - lastUp - lastDown
 
@@ -60,6 +81,8 @@ data class TrafficSnapshot (
 
     val wifiSpeed: Long
         get() = currentWifi - lastWifi
+
+    private var useFallback: Boolean? = null
 
     fun setCurrentAsLast() {
         lastDown = currentDown
@@ -76,6 +99,26 @@ data class TrafficSnapshot (
     }
 
     fun updateSnapshot() {
+        if (useFallback == null) {
+            useFallback = TrafficStats.getTotalTxBytes() == TrafficStats.UNSUPPORTED.toLong()
+        }
+        useFallback?.let {
+            if (it) {
+                try {
+                    fallbackUpdateSnapshot()
+                } catch (_: Exception) {
+                    Log.e("Traffic Light", "Tried using fallback and it failed")
+                    preferenceRepo.setForceFallback(false)
+                    useFallback = false
+                }
+            }
+            else {
+                regularUpdateSnapshot()
+            }
+        }
+    }
+
+    private fun regularUpdateSnapshot() {
         currentDown = TrafficStats.getTotalRxBytes()
         currentUp = TrafficStats.getTotalTxBytes()
         currentMobile = TrafficStats.getMobileRxBytes() + TrafficStats.getMobileTxBytes()
@@ -86,13 +129,26 @@ data class TrafficSnapshot (
          * https://issuetracker.google.com/issues/37009612
          * Yes. That bug report is from 2014.
          * Yes. It still happens on my Android 16 device.
-        */
+         */
     }
 
-    /*fun closeEnough(other: TrafficSnapshot?): Boolean {
-        return other?.let {
-            totalSpeed == it.totalSpeed ||
-            (totalSpeed in 1..1023 && it.totalSpeed in 1..1023)
-        } ?: false
-    }*/
+    val mobileRxFile: File by lazy { File("/sys/class/net/rmnet0/statistics/rx_bytes") }
+    val mobileTxFile: File by lazy { File("/sys/class/net/rmnet0/statistics/tx_bytes") }
+    val wifiRxFile: File by lazy { File("/sys/class/net/wlan0/statistics/rx_bytes") }
+    val wifiTxFile: File by lazy { File("/sys/class/net/wlan0/statistics/tx_bytes") }
+    val ethRxFile: File by lazy { File("/sys/class/net/eth0/statistics/rx_bytes") }
+    val ethTxFile: File by lazy { File("/sys/class/net/eth0/statistics/tx_bytes") }
+
+    private fun fallbackUpdateSnapshot() {
+        val mobileUp = if (mobileTxFile.exists()) mobileTxFile.readText().trim().toLong() else 0
+        val mobileDown = if (mobileRxFile.exists()) mobileRxFile.readText().trim().toLong() else 0
+        val wifiUp = if (wifiTxFile.exists()) wifiTxFile.readText().trim().toLong() else 0 +
+                     if (ethTxFile.exists()) ethTxFile.readText().trim().toLong() else 0
+        val wifiDown = if (wifiRxFile.exists()) wifiRxFile.readText().trim().toLong() else 0 +
+                       if (ethRxFile.exists()) ethRxFile.readText().trim().toLong() else 0
+        currentUp = mobileUp + wifiUp
+        currentDown = mobileDown + wifiDown
+        currentMobile = mobileUp + mobileDown
+        currentWifi = wifiUp + wifiDown
+    }
 }

@@ -35,4 +35,6 @@
     <string name="speed_in_bits">Greitį matuoti bitais</string>
     <string name="github_description">Praneškite sutiktas programėlės problemas.</string>
     <string name="version">Versija %1$s</string>
+    <string name="force_fallback">Priverstinai naudoti atsarginį skaičiavimo metodą</string>
+    <string name="force_fallback_description">Naudinga jei jūsų sitema turi klaidų arba esate prisijungę prie laidinio interneto</string>
 </resources>

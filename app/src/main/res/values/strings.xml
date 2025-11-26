@@ -29,6 +29,8 @@
     <string name="github" translatable="false">Github</string>
     <string name="github_description">Track development or report issues.</string>
     <string name="version">Version %1$s</string>
+    <string name="force_fallback">Force fallback speed tracking</string>
+    <string name="force_fallback_description">Helpful when using a buggy ROM or ethernet</string>
     <plurals name="days">
         <item quantity="one">%d day</item>
         <item quantity="other">%d days</item>
