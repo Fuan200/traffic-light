@@ -50,6 +50,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     dependenciesInfo {
         // Disables dependency metadata when building APKs.
@@ -87,6 +88,5 @@ dependencies {
 
     // ViewModel
     implementation(libs.androidx.lifecycle.viewmodel.ktx)
-// ViewModel utilities for Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 }

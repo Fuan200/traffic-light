@@ -6,7 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.leekleak.trafficlight.ui.app.AppTheme
+import com.leekleak.trafficlight.ui.theme.Theme
 import com.leekleak.trafficlight.services.UsageService.Companion.NOTIFICATION_CHANNEL_ID
 import com.leekleak.trafficlight.ui.app.App
 
@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
         createNotificationChannel()
 
         setContent {
-            AppTheme {
+            Theme {
                 App()
             }
         }

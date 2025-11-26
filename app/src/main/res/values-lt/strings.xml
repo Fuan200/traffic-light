@@ -24,6 +24,7 @@
     <string name="wi_fi">Wi-Fi: %1$s</string>
     <string name="mobile">Mobilieji: %1$s</string>
     <string name="clear_history">Išvalyti istoriją</string>
+    <string name="clear_history_description">Gali padėti išvalyti klaidingus duomenis.</string>
     <string name="about">Apie</string>
     <plurals name="days">
         <item quantity="one">%d diena</item>
@@ -32,4 +33,6 @@
         <item quantity="other">%d dienų</item>
     </plurals>
     <string name="speed_in_bits">Greitį matuoti bitais</string>
+    <string name="github_description">Praneškite sutiktas programėlės problemas.</string>
+    <string name="version">Versija %1$s</string>
 </resources>

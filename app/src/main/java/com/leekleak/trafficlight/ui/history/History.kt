@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -59,7 +60,6 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
-import java.util.Locale
 
 @Composable
 fun History(
@@ -122,9 +122,9 @@ fun HistoryItem(
     val totalCellular = usage.sumOf { it.totalCellular }
     Column (
         modifier = Modifier
+            .shadow(4.dp, MaterialTheme.shapes.large)
             .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainer)
-            .padding(start = 4.dp, end = 4.dp)
     ) {
         Box (
             modifier = Modifier
@@ -196,7 +196,7 @@ fun HistoryItem(
             enter = expandVertically(spring(0.7f, Spring.StiffnessMedium)),
             exit = shrinkVertically(spring(0.7f, Spring.StiffnessMedium))
         ) {
-            Box(modifier = Modifier.padding(top = 2.dp, bottom = 6.dp, start = 2.dp, end = 2.dp)) {
+            Box(modifier = Modifier.padding(4.dp)) {
                 Box(
                     modifier = Modifier
                         .clip(MaterialTheme.shapes.medium)

@@ -1,4 +1,4 @@
-package com.leekleak.trafficlight.ui.app
+package com.leekleak.trafficlight.ui.theme
 
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -9,11 +9,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 @Composable
-fun AppTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+fun Theme(
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
+    val darkTheme: Boolean = isSystemInDarkTheme()
+
     MaterialTheme (
         colorScheme =
             if (Build.VERSION.SDK_INT >= 31) {

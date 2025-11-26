@@ -14,6 +14,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.leekleak.trafficlight.BuildConfig
 import com.leekleak.trafficlight.R
 import com.leekleak.trafficlight.util.categoryTitle
 import com.leekleak.trafficlight.util.categoryTitleSmall
@@ -30,7 +31,7 @@ fun Settings(
     ) {
         categoryTitle(R.string.settings)
         categoryTitleSmall(R.string.notifications)
-        preferenceCategory {
+        item {
             val modeAOD by viewModel.modeAOD.collectAsState()
             SwitchPreference(
                 title = stringResource(R.string.screen_off_update),
@@ -39,6 +40,8 @@ fun Settings(
                 value = modeAOD,
                 onValueChanged = { viewModel.setModeAOD(it) }
             )
+        }
+        item {
             val bigIcon by viewModel.bigIcon.collectAsState()
             SwitchPreference(
                 title = stringResource(R.string.oversample_icon),
@@ -47,6 +50,8 @@ fun Settings(
                 value = bigIcon,
                 onValueChanged = { viewModel.setBigIcon(it) }
             )
+        }
+        item {
             val speedBits by viewModel.speedBits.collectAsState()
             SwitchPreference(
                 title = stringResource(R.string.speed_in_bits),
@@ -55,14 +60,14 @@ fun Settings(
                 value = speedBits,
                 onValueChanged = { viewModel.setSpeedBits(it) }
             )
-
         }
+
         categoryTitleSmall(R.string.history)
-        preferenceCategory {
+        item {
             val dbSize by viewModel.dbSize.collectAsState()
             Preference(
                 title = stringResource(R.string.clear_history),
-                summary = null,
+                summary = stringResource(R.string.clear_history_description),
                 icon = painterResource(R.drawable.clear_history),
                 onClick = { viewModel.clearDB() },
                 controls = {
@@ -71,12 +76,19 @@ fun Settings(
             )
         }
         categoryTitleSmall(R.string.about)
-        preferenceCategory {
+        item {
             Preference(
                 title = stringResource(R.string.github),
-                summary = null,
+                summary = stringResource(R.string.github_description),
                 icon = painterResource(R.drawable.github),
                 onClick = { viewModel.openGithub(activity) },
+            )
+        }
+        item {
+            Preference(
+                title = stringResource(R.string.version, BuildConfig.VERSION_NAME),
+                icon = painterResource(R.drawable.version),
+                onClick = {},
             )
         }
     }

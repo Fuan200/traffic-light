@@ -22,10 +22,13 @@
     <string name="oversample_icon_description">Render the icon at a larger resolution if it\'s blurry.</string>
     <string name="wi_fi">Wi-Fi: %1$s</string>
     <string name="mobile">Mobile: %1$s</string>
-    <string name="clear_history">Clear History</string>
+    <string name="clear_history">Repopulate History</string>
+    <string name="clear_history_description">May help fix database issues.</string>
     <string name="about">About</string>
     <string name="speed_in_bits">Show speed in bits</string>
     <string name="github" translatable="false">Github</string>
+    <string name="github_description">Track development or report issues.</string>
+    <string name="version">Version %1$s</string>
     <plurals name="days">
         <item quantity="one">%d day</item>
         <item quantity="other">%d days</item>

@@ -2,16 +2,13 @@ package com.leekleak.trafficlight.ui.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
@@ -25,28 +22,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 
-fun LazyListScope.preferenceCategory(
-    content: @Composable ColumnScope.() -> Unit
-) {
-    item {
-        Column(
-            modifier = Modifier.clip(MaterialTheme.shapes.medium),
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            content()
-        }
-    }
-}
-
 @Composable
 fun Preference(
     title: String,
-    summary: String?,
+    summary: String? = null,
     icon: Painter? = null,
     onClick: () -> Unit = {},
     controls: @Composable (() -> Unit)? = null,
@@ -56,6 +41,8 @@ fun Preference(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .shadow(4.dp, MaterialTheme.shapes.large)
             .clip(MaterialTheme.shapes.extraSmall)
             .clickable(enabled = enabled, onClick = onClick)
             .background(MaterialTheme.colorScheme.surfaceContainer)
@@ -91,7 +78,7 @@ fun Preference(
             if (summary != null) {
                 CompositionLocalProvider(
                     LocalTextStyle provides MaterialTheme.typography.bodyMedium,
-                    LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant,
+                    LocalContentColor provides MaterialTheme.colorScheme.onSurface,
                 ) {
                     Text(text = summary)
                 }
