@@ -25,11 +25,14 @@ fun LineGraph(
     val primaryColor = GraphTheme.primaryColor
     val secondaryColor = GraphTheme.secondaryColor
     val backgroundColor = GraphTheme.backgroundColor
-    val cornerRadius = CornerRadius(32.dp.px)
+    val cornerBig = CornerRadius(32.dp.px)
+    val cornerSmall = CornerRadius(16.dp.px)
 
     data class RectDrawData (
         val rect: Rect,
-        val color: Color
+        val color: Color,
+        val leftRadius: CornerRadius,
+        val rightRadius: CornerRadius,
     )
 
     Canvas(
@@ -41,12 +44,12 @@ fun LineGraph(
         val cellularMaxWidth = size.width - if (data.first != 0L) 24.dp.toPx() else 0f
         val wifiSizeX =
             min(
-                max((data.first.toDouble() / maximum.toDouble() * size.width).toFloat(), cornerRadius.x),
+                max((data.first.toDouble() / maximum.toDouble() * size.width).toFloat(), cornerBig.x),
                 wifiMaxWidth
             )
         val cellularSizeX =
             min(
-            max((data.second.toDouble() / maximum.toDouble() * size.width).toFloat(), cornerRadius.x),
+            max((data.second.toDouble() / maximum.toDouble() * size.width).toFloat(), cornerBig.x),
             cellularMaxWidth
             )
 
@@ -67,16 +70,19 @@ fun LineGraph(
             Size(size.width, size.height)
         )
 
-        val rects = mutableListOf(RectDrawData(backgroundRect, backgroundColor))
-        if (data.first != 0L) rects.add(RectDrawData(wifiRect, primaryColor))
-        if (data.second != 0L) rects.add(RectDrawData(cellularRect, secondaryColor))
+        val rects = mutableListOf(RectDrawData(backgroundRect, backgroundColor, cornerBig, cornerBig))
+        if (data.first != 0L) rects.add(RectDrawData(wifiRect, primaryColor, cornerBig, cornerSmall))
+        if (data.second != 0L) rects.add(RectDrawData(cellularRect, secondaryColor, cornerSmall, cornerBig))
 
         for (data in rects) {
             val path = Path().apply {
                 addRoundRect(
                     RoundRect(
                         rect = data.rect,
-                        cornerRadius = cornerRadius
+                        topLeft = data.leftRadius,
+                        topRight = data.rightRadius,
+                        bottomRight = data.rightRadius,
+                        bottomLeft = data.leftRadius,
                     )
                 )
             }
